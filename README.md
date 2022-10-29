@@ -19,6 +19,13 @@ affix that can be added to all existing text objects. `carb<leap>` ("change
 around remote block [marked by leap motion]") in no time will be just as natural
 as targets.vim's `canb` ("change around next block").
 
+## Usage
+
+The "spooky" text objects automatically invoke Leap; after e.g. `yarw`, start
+typing the 2-character search pattern, and select the target as you would
+usually do. The difference is that instead of jumping there, the word will be
+yanked.
+
 ## What are some fun things you can do with this?
 
 - Comment/delete/indent paragraphs without leaving your position (`darp<leap>`).
