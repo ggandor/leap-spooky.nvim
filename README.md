@@ -30,17 +30,15 @@ yanked.
 
 - Comment/delete/indent paragraphs without leaving your position (`darp<leap>`).
 - Fix a typo, even in another window, with a short, atomic command sequence
-  (`cRw<leap><correction>`).
-- Operate on distant lines by targeting any text object in forced linewise mode:
-  `<op>Vrw<leap>`.
+  (`ciRw<leap><correction>`).
+- Operate on distant lines: `crr<leap>`.
 - Clone text objects with a few keystrokes by turning on auto-paste after
   yanking (`yarp<leap>`).
 - Use `count`: e.g. `y3arw<leap>` yanks 3 words from the anchor point.
 
 ## Status
 
-WIP - everything is experimental at the moment. Especially the suggested
-mappings.
+WIP - everything is experimental at the moment.
 
 ## Requirements
 
@@ -52,28 +50,18 @@ Spooky exposes only one convenience function. You can call it without arguments,
 if the defaults are okay:
 
 ```lua
-require('leap-spooky').add_spooky_mappings {
-  -- The yanked text will automatically be pasted at the cursor position
-  -- if the unnamed register is in use. (Experimental feature - I'm thinking
-  -- about the proper API for this.)
+require('leap-spooky').setup {
+  affixes = {
+    -- These will generate mappings for all native text objects, like:
+    -- ir{obj}, ar{obj}, iR{obj}, aR{obj}, etc.
+    -- Special "remote" line objects will also be added, by repeating the
+    -- affixes. E.g. `yrr<leap>` will yank a line in the current window.
+    window       = 'r',
+    cross_window = 'R',
+  },
+  -- If this option is set to true, the yanked text will automatically be pasted
+  -- at the cursor position if the unnamed register is in use.
   yank_paste = false,
-  keys = { 
-    -- For each search scope, define a table like below, with separate affixes
-    -- corresponding to "inner" and "around" objects.
-    -- These will generate mappings for all given text objects, like:
-    -- r{obj}, ar{obj}, R{obj}, aR{obj}, etc.
-    -- Mnemonics: "remote object", "around remote object".
-    window       = { i = 'r', a = 'ar' },
-    cross_window = { i = 'R', a = 'aR' },
-    forward      = nil,
-    backward     = nil,
-  },
-  textobjects = {
-    'iw', 'iW', 'is', 'ip', 'i[', 'i]', 'i(', 'i)', 'ib',
-    'i>', 'i<', 'it', 'i{', 'i}', 'iB', 'i"', 'i\'', 'i`',
-    'aw', 'aW', 'as', 'ap', 'a[', 'a]', 'a(', 'a)', 'ab',
-    'a>', 'a<', 'at', 'a{', 'a}', 'aB', 'a"', 'a\'', 'a`',
-  },
   -- Call-specific overrides for the Leap motion itself.
   -- E.g.: opts = { equivalence_classes = {} }
   opts = nil,
@@ -90,3 +78,5 @@ require('leap-spooky').add_spooky_mappings {
 - Label the text objects themselves (at least blocks, paragraphs, etc.), so that
   you can immediately choose one, instead of having to specify the anchor point
   with a default 2-char Leap motion.
+
+- API for "spookifying" custom (non-native) text objects.

@@ -1,10 +1,8 @@
 local api = vim.api
 
-local default_keys = { 
-  forward      = nil,
-  backward     = nil,
-  window       = { i = 'r', a = 'ar' },
-  cross_window = { i = 'R', a = 'aR' },
+local default_affixes = { 
+  window       = 'r',
+  cross_window = 'R',
 }
 
 local default_textobjects = {
@@ -43,7 +41,7 @@ local function spooky_action(textobj, yank_paste)
     end
     api.nvim_win_set_cursor(0, { target.pos[1], target.pos[2]-1 })
     -- Execute.
-    vim.cmd("normal! v" .. vim.v.count1 .. textobj .. force)
+    vim.cmd("normal! v" .. vim.v.count1 .. textobj .. (textobj == "V" and "" or force))
 
     -- Things to do if staying in place.
     if keeppos then
@@ -68,26 +66,27 @@ local function spooky_action(textobj, yank_paste)
 end
 
 
--- TODO: We're hardcoding that all textobjects follow the a/i pattern.
--- What about custom ones?
-local function add_spooky_mappings(kwargs)
+local function setup(kwargs)
+  local kwargs = kwargs or {}
   local yank_paste = kwargs.yank_paste
-  local keys = kwargs.keys
-  local textobjects = kwargs.textobjects
+  local affixes = kwargs.affixes
   local opts = kwargs.opts
   local mappings = {}
-  for dir, dir_keys in pairs(keys or default_keys) do
-    for ia, key in pairs(dir_keys) do
-      for _, textobj in ipairs(textobjects or default_textobjects) do
-        if textobj:sub(1,1) == ia then
-          table.insert(mappings, {
-            lhs = key .. textobj:sub(2),
-            textobj = textobj,
-            dir = dir
-          })
-        end
-      end
+  for dir, key in pairs(affixes or default_affixes) do
+    for _, textobj in ipairs(default_textobjects) do
+      local ia = textobj:sub(1,1)
+      table.insert(mappings, {
+        lhs = ia .. key .. textobj:sub(2),
+        textobj = textobj,
+        dir = dir,
+      })
     end
+    -- Special remote line object.
+    table.insert(mappings, {
+      lhs = key .. key,
+      textobj = "V",
+      dir = dir,
+    })
   end
 
   for _, mapping in ipairs(mappings) do
@@ -100,7 +99,6 @@ local function add_spooky_mappings(kwargs)
       end
       require'leap'.leap {
         action = spooky_action(mapping.textobj, yank_paste),
-        backward = mapping.dir == 'backward',
         target_windows = target_windows,
         opts = opts,
       }
@@ -109,4 +107,7 @@ local function add_spooky_mappings(kwargs)
 end
 
 
-return { add_spooky_mappings = add_spooky_mappings }
+return { 
+  spookify = setup,
+  setup = setup
+}
