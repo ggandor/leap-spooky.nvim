@@ -72,29 +72,29 @@ local function setup(kwargs)
   local affixes = kwargs.affixes
   local opts = kwargs.opts
   local mappings = {}
-  for dir, key in pairs(affixes or default_affixes) do
+  for scope, key in pairs(affixes or default_affixes) do
     for _, textobj in ipairs(default_textobjects) do
       local ia = textobj:sub(1,1)
       table.insert(mappings, {
         lhs = ia .. key .. textobj:sub(2),
         textobj = textobj,
-        dir = dir,
+        scope = scope,
       })
     end
     -- Special remote line object.
     table.insert(mappings, {
       lhs = key .. key,
       textobj = "V",
-      dir = dir,
+      scope = scope,
     })
   end
 
   for _, mapping in ipairs(mappings) do
     vim.keymap.set('o', mapping.lhs, function ()
       local target_windows = nil
-      if mapping.dir == 'window' then
+      if mapping.scope == 'window' then
         target_windows = { vim.fn.win_getid() }
-      elseif mapping.dir == 'cross_window' then
+      elseif mapping.scope == 'cross_window' then
         target_windows = require'leap.util'.get_enterable_windows()
       end
       require'leap'.leap {
