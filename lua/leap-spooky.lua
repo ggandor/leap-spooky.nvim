@@ -106,11 +106,11 @@ local function setup(kwargs)
       elseif mapping.scope == 'cross_window' then
         target_windows = require'leap.util'.get_enterable_windows()
       end
-      local keeppos = mapping.keeppos
-      yank_paste = yank_paste and keeppos and vim.v.operator == 'y' and vim.v.register == "\""
+      local yank_paste = (yank_paste and mapping.keeppos and
+                          vim.v.operator == 'y' and vim.v.register == "\"")
       require'leap'.leap {
         action = spooky_action(mapping.action, {
-          keeppos = keeppos,
+          keeppos = mapping.keeppos,
           on_return = yank_paste and "p",
         }),
         target_windows = target_windows,
