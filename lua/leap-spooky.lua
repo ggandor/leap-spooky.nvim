@@ -69,7 +69,7 @@ local default_text_objects = {
 local function setup(kwargs)
   local kwargs = kwargs or {}
   local affixes = kwargs.affixes
-  local yank_paste = kwargs.yank_paste
+  local yank_paste = kwargs.paste_on_remote_yank or kwargs.yank_paste
 
   local mappings = {}
   for kind, scopes in pairs(affixes or default_affixes) do

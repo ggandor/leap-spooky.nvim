@@ -28,10 +28,10 @@ will be yanked.
 
 ## What are some fun things you can do with this?
 
-- delete/fold/comment/etc. paragraphs without leaving your position
+- Delete/fold/comment/etc. paragraphs without leaving your position
   (`zfarp<leap>`).
-- Clone text objects in the blink of an eye, even from another window, by
-  turning on auto-paste after yanking (`yarp<leap>`).
+- Clone text objects in the blink of an eye, even from another window
+  by turning on `paste_on_remote_yank` (`yaRp<leap>`).
 - Fix a typo with a short, atomic command sequence (`cimw<leap><correction>`).
 - Operate on distant lines: `drr<leap>`.
 - Use `count`: e.g. `y3rr<leap>` yanks 3 lines, just as `3yy` would do.
@@ -62,9 +62,8 @@ require('leap-spooky').setup {
     magnetic = { window = 'm', cross_window = 'M' },
   },
   -- If this option is set to true, the yanked text will automatically be pasted
-  -- at the cursor position if the unnamed register is in use (and the object is
-  -- "non-magnetic").
-  yank_paste = false,
+  -- at the cursor position if the unnamed register is in use.
+  paste_on_remote_yank = false,
 }
 ```
 
