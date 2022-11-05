@@ -13,6 +13,7 @@ end
 
 local function spooky_action(action, kwargs)
   return function (target)
+    local op_mode = vim.fn.mode(1):match('o') 
     local on_return = kwargs.on_return
     local keeppos = kwargs.keeppos
     local saved_view = vim.fn.winsaveview()
@@ -32,7 +33,7 @@ local function spooky_action(action, kwargs)
     -- (The operation itself will be executed after exiting.)
 
     -- Follow-up:
-    if keeppos or on_return then
+    if (keeppos or on_return) and op_mode then  -- sanity check
       api.nvim_create_autocmd('ModeChanged', {
         pattern = '*:n',  -- trigger on returning to Normal
         once = true,
@@ -71,6 +72,13 @@ local function setup(kwargs)
   local affixes = kwargs.affixes
   local yank_paste = kwargs.paste_on_remote_yank or kwargs.yank_paste
 
+  local v_exit = function()
+    local mode = vim.fn.mode(1)
+    if mode:match('o') then return "" end
+    -- v/V/<C-v> exits the corresponding Visual mode if already in it.
+    return mode:sub(1,1)
+  end
+
   local mappings = {}
   for kind, scopes in pairs(affixes or default_affixes) do
     local keeppos = kind == 'remote'
@@ -81,41 +89,51 @@ local function setup(kwargs)
           keeppos = keeppos,
           lhs = textobj:sub(1,1) .. key .. textobj:sub(2),
           action = function ()
-            return "v" .. vim.v.count1 .. textobj .. get_motion_force()
+            return v_exit() .. "v" .. vim.v.count1 .. textobj .. get_motion_force()
           end,
         })
       end
       -- Special case: remote lines.
-      table.insert(mappings, {
-        scope = scope,
-        keeppos = keeppos,
-        lhs = key .. key,
-        action = function ()
-          local n_js = vim.v.count1 - 1
-          return "V" .. (n_js > 0 and (tostring(n_js) .. "j") or "")
-        end,
-      })
+      if not keeppos then
+        table.insert(mappings, {
+          scope = scope,
+          keeppos = keeppos,
+          lhs = key .. key,
+          action = function ()
+            -- Note: a simple [count]V would not work, its behaviour
+            -- depends on the previous Visual operation, see `:h V`.
+            local n_js = vim.v.count1 - 1
+            return v_exit() .. "V" .. (n_js > 0 and (tostring(n_js) .. "j") or "")
+          end,
+        })
+      end
     end
   end
 
   for _, mapping in ipairs(mappings) do
-    vim.keymap.set('o', mapping.lhs, function ()
-      local target_windows = nil
-      if mapping.scope == 'window' then
-        target_windows = { vim.fn.win_getid() }
-      elseif mapping.scope == 'cross_window' then
-        target_windows = require'leap.util'.get_enterable_windows()
+    for _, mode in ipairs({'x', 'o'}) do
+      if mode == 'o' or (not mapping.keeppos) then
+        vim.keymap.set(mode, mapping.lhs, function ()
+          local target_windows = nil
+          if mapping.scope == 'window' then
+            target_windows = { vim.fn.win_getid() }
+          elseif mapping.scope == 'cross_window' then
+            target_windows = require'leap.util'.get_enterable_windows()
+          end
+          local yank_paste = (yank_paste and mapping.keeppos and
+                              vim.v.operator == 'y' and vim.v.register == "\"")
+          require'leap'.leap {
+            action = spooky_action(mapping.action, {
+              keeppos = mapping.keeppos,
+              on_return = yank_paste and "p",
+            }),
+            target_windows = vim.tbl_filter(
+              function (win) return vim.api.nvim_win_get_config(win).focusable end,
+              vim.api.nvim_tabpage_list_wins(0)
+            )}
+        end)
       end
-      local yank_paste = (yank_paste and mapping.keeppos and
-                          vim.v.operator == 'y' and vim.v.register == "\"")
-      require'leap'.leap {
-        action = spooky_action(mapping.action, {
-          keeppos = mapping.keeppos,
-          on_return = yank_paste and "p",
-        }),
-        target_windows = target_windows,
-      }
-    end)
+    end
   end
 end
 
