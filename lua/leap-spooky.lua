@@ -94,24 +94,23 @@ local function setup(kwargs)
         })
       end
       -- Special case: remote lines.
-      if not keeppos then
-        table.insert(mappings, {
-          scope = scope,
-          keeppos = keeppos,
-          lhs = key .. key,
-          action = function ()
-            -- Note: a simple [count]V would not work, its behaviour
-            -- depends on the previous Visual operation, see `:h V`.
-            local n_js = vim.v.count1 - 1
-            return v_exit() .. "V" .. (n_js > 0 and (tostring(n_js) .. "j") or "")
-          end,
-        })
-      end
+      table.insert(mappings, {
+        scope = scope,
+        keeppos = keeppos,
+        lhs = key .. key,
+        action = function ()
+          -- Note: a simple [count]V would not work, its behaviour
+          -- depends on the previous Visual operation, see `:h V`.
+          local n_js = vim.v.count1 - 1
+          return v_exit() .. "V" .. (n_js > 0 and (tostring(n_js) .. "j") or "")
+        end,
+      })
     end
   end
 
   for _, mapping in ipairs(mappings) do
     for _, mode in ipairs({'x', 'o'}) do
+      -- Don't map "remote" keys in Visual.
       if mode == 'o' or (not mapping.keeppos) then
         vim.keymap.set(mode, mapping.lhs, function ()
           local target_windows = nil
