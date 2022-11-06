@@ -15,7 +15,7 @@ It's not just the number of keystrokes that matter here, but the potentially
 more intuitive workflow achieved through these higher abstractions, that are
 nevertheless obvious extensions of Vim's grammar. As usual, the aim is to
 sharpen the saw; there are no big list of new commands to learn, except for two
-affixes that can be added to all existing text objects. `carb<leap>` ("change
+affixes that can be added to all existing text objects. `carb[leap]` ("change
 around remote block [marked by leap motion]") in no time will be just as natural
 as targets.vim's `canb` ("change around next block").
 
@@ -29,12 +29,13 @@ will be yanked.
 ## What are some fun things you can do with this?
 
 - Delete/fold/comment/etc. paragraphs without leaving your position
-  (`zfarp<leap>`).
-- Clone text objects in the blink of an eye, even from another window
-  by turning on `paste_on_remote_yank` (`yaRp<leap>`).
-- Fix a typo with a short, atomic command sequence (`cimw<leap><correction>`).
-- Operate on distant lines: `drr<leap>`.
-- Use `count`: e.g. `y3rr<leap>` yanks 3 lines, just as `3yy` would do.
+  (`zfarp[leap]`).
+- Clone text objects in the blink of an eye, even from another window, by
+  turning on `paste_on_remote_yank` (`yaRp[leap]`).
+- Do the above stunt in Insert mode (`...<C-o>yaRW[leap]...`).
+- Fix a typo with a short, atomic command sequence (`cimw[leap][correction]`).
+- Operate on distant lines: `drr[leap]`.
+- Use `count`: e.g. `y3rr[leap]` yanks 3 lines, just as `3yy` would do.
 
 ## Status
 

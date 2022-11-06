@@ -13,7 +13,7 @@ end
 
 local function spooky_action(action, kwargs)
   return function (target)
-    local op_mode = vim.fn.mode(1):match('o') 
+    local op_mode = vim.fn.mode(1):match('o')
     local on_return = kwargs.on_return
     local keeppos = kwargs.keeppos
     local saved_view = vim.fn.winsaveview()
@@ -35,7 +35,11 @@ local function spooky_action(action, kwargs)
     -- Follow-up:
     if (keeppos or on_return) and op_mode then  -- sanity check
       api.nvim_create_autocmd('ModeChanged', {
-        pattern = '*:n',  -- trigger on returning to Normal
+        -- Trigger on any mode change, including returning to Insert
+        -- (possible i_CTRL-O), except for change operations (then
+        -- we first enter Insert mode for doing the change itself, and
+        -- should wait for returning to Normal).
+        pattern = vim.v.operator == 'c' and '*:n' or '*:*',
         once = true,
         callback = function ()
           if keeppos then
