@@ -14,6 +14,7 @@ end
 local function spooky_action(action, kwargs)
   return function (target)
     local op_mode = vim.fn.mode(1):match('o')
+    local operator = vim.v.operator
     local on_return = kwargs.on_return
     local keeppos = kwargs.keeppos
     local saved_view = vim.fn.winsaveview()
@@ -39,7 +40,7 @@ local function spooky_action(action, kwargs)
         -- (possible i_CTRL-O), except for change operations (then
         -- we first enter Insert mode for doing the change itself, and
         -- should wait for returning to Normal).
-        pattern = vim.v.operator == 'c' and '*:n' or '*:*',
+        pattern = operator == 'c' and '*:n' or '*:*',
         once = true,
         callback = function ()
           if keeppos then
