@@ -77,6 +77,10 @@ local function setup(kwargs)
   local affixes = kwargs.affixes
   local yank_paste = kwargs.paste_on_remote_yank or kwargs.yank_paste
 
+  local default_register = (vim.o.clipboard == 'unnamed' and "*" or
+                            vim.o.clipboard:match('unnamedplus') and "+" or
+                            "\"")
+
   local v_exit = function()
     local mode = vim.fn.mode(1)
     if mode:match('o') then return "" end
@@ -124,8 +128,10 @@ local function setup(kwargs)
           elseif mapping.scope == 'cross_window' then
             target_windows = require'leap.util'.get_enterable_windows()
           end
-          local yank_paste = (yank_paste and mapping.keeppos and
-                              vim.v.operator == 'y' and vim.v.register == "\"")
+          local yank_paste = (yank_paste and
+                              mapping.keeppos and
+                              vim.v.operator == 'y' and
+                              vim.v.register == default_register)
           require'leap'.leap {
             action = spooky_action(mapping.action, {
               keeppos = mapping.keeppos,
