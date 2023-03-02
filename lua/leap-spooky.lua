@@ -65,21 +65,28 @@ local default_affixes = {
   magnetic = { window = 'm', cross_window = 'M' },
 }
 
-local default_text_objects = {
-  'iw', 'iW', 'is', 'ip', 'i[', 'i]', 'i(', 'i)', 'ib',
-  'i>', 'i<', 'it', 'i{', 'i}', 'iB', 'i"', 'i\'', 'i`',
-  'aw', 'aW', 'as', 'ap', 'a[', 'a]', 'a(', 'a)', 'ab',
-  'a>', 'a<', 'at', 'a{', 'a}', 'aB', 'a"', 'a\'', 'a`',
+local default_text_objects_raw = {
+  'w', 'W', 's', 'p', '[', ']', '(', ')', 'b',
+  '>', '<', 't', '{', '}', 'B', '"', '\'', '`',
 }
+
+local function assign_inner_around(raw_text_objects)
+  local inner_around_mappings = {}
+  for _, raw_text_object in ipairs(raw_text_objects) do
+    table.insert(inner_around_mappings, "i"..raw_text_object)
+    table.insert(inner_around_mappings, "a"..raw_text_object)
+  end
+  return inner_around_mappings
+end
+
+local default_text_objects = assign_inner_around(default_text_objects_raw)
 
 local function setup(kwargs)
   local kwargs = kwargs or {}
   local affixes = kwargs.affixes
+  local custom_textobjects = assign_inner_around(kwargs.custom_textobjects or {})
+  local text_objects = vim.list_extend(default_text_objects, custom_textobjects)
   local yank_paste = kwargs.paste_on_remote_yank or kwargs.yank_paste
-
-  local default_register = (vim.o.clipboard == 'unnamed' and "*" or
-                            vim.o.clipboard:match('unnamedplus') and "+" or
-                            "\"")
 
   local v_exit = function()
     local mode = vim.fn.mode(1)
@@ -96,7 +103,7 @@ local function setup(kwargs)
         table.insert(mappings, {
           scope = scope,
           keeppos = keeppos,
-          lhs = textobj:sub(1,1) .. key .. textobj:sub(2),
+          lhs = key .. textobj,
           action = function ()
             return v_exit() .. "v" .. vim.v.count1 .. textobj .. get_motion_force()
           end,
@@ -128,17 +135,48 @@ local function setup(kwargs)
           elseif mapping.scope == 'cross_window' then
             target_windows = require'leap.util'.get_enterable_windows()
           end
-          local yank_paste = (yank_paste and
-                              mapping.keeppos and
-                              vim.v.operator == 'y' and
-                              vim.v.register == default_register)
-          require'leap'.leap {
+          local yank_paste = (yank_paste and mapping.keeppos and
+                              vim.v.operator == 'y' and vim.v.register == "\"")
+
+          local leap_params = {
             action = spooky_action(mapping.action, {
               keeppos = mapping.keeppos,
               on_return = yank_paste and "p",
             }),
             target_windows = target_windows
           }
+          if kwargs.auto_targets then
+            local ok, MiniAi = pcall(require, "mini.ai")
+            if ok then 
+              local is_ai = mapping.lhs:sub(-2, -2)
+              local obj_type = mapping.lhs:sub(-1, -1)
+              local first_visible = vim.fn.line("w0")
+              local search_opts = {
+                n_lines = 50,
+                n_times = 1,
+                reference_region = {
+                  from = { line = first_visible, col = 1 },
+                }
+              }
+              local search_count = 1
+              local textobj_targets = {}
+              while search_count > 0 and search_count < (kwargs.auto_targets_max_targets or 100) do
+                search_opts.n_times = search_count
+                local target = MiniAi.find_textobject(is_ai, obj_type, search_opts)
+                if target ~= nil then
+                  table.insert(textobj_targets, { pos = { target.from.line, target.from.col } })
+                  search_count = search_count + 1
+                else
+                  search_count = 0
+                end
+              end
+
+              if #textobj_targets > 0 then
+                leap_params.targets = textobj_targets
+              end
+            end
+          end
+          require'leap'.leap(leap_params)
         end)
       end
     end
