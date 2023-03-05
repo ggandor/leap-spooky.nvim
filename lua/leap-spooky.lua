@@ -12,6 +12,7 @@ end
 
 
 local function spooky_action(action, kwargs)
+
   return function (target)
     local op_mode = vim.fn.mode(1):match('o')
     local operator = vim.v.operator
@@ -26,6 +27,19 @@ local function spooky_action(action, kwargs)
     local ns = api.nvim_create_namespace("leap-spooky")
     local anchor = api.nvim_buf_set_extmark(0, ns, saved_view.lnum-1, saved_view.col, {})
 
+    local after = function ()
+      if keeppos then
+        if cross_window then api.nvim_set_current_win(source_win) end
+        vim.fn.winrestview(saved_view)
+        local anchorpos = api.nvim_buf_get_extmark_by_id(0, ns, anchor, {})
+        api.nvim_win_set_cursor(0, { anchorpos[1]+1, anchorpos[2] })
+        api.nvim_buf_clear_namespace(0, ns, 0, -1)  -- remove the anchor
+      end
+      if on_return then
+        vim.cmd.normal(on_return)
+      end
+    end
+
     -- Jump.
     if cross_window then api.nvim_set_current_win(target.wininfo.winid) end
     api.nvim_win_set_cursor(0, { target.pos[1], target.pos[2]-1 })
@@ -33,30 +47,20 @@ local function spooky_action(action, kwargs)
     vim.cmd("normal " .. action())  -- don't use bang - custom text objects should work too
     -- (The operation itself will be executed after exiting.)
 
-    -- Follow-up:
-    if (keeppos or on_return) and op_mode then  -- sanity check
+    -- Follow-up.
+    if (keeppos or on_return) and op_mode then  -- op_mode: sanity check
       api.nvim_create_autocmd('ModeChanged', {
         -- Trigger on any mode change, including returning to Insert
         -- (possible i_CTRL-O), except for change operations (then
         -- we first enter Insert mode for doing the change itself, and
         -- should wait for returning to Normal).
         pattern = operator == 'c' and '*:n' or '*:*',
+        callback = after,
         once = true,
-        callback = function ()
-          if keeppos then
-            if cross_window then api.nvim_set_current_win(source_win) end
-            vim.fn.winrestview(saved_view)
-            local anchorpos = api.nvim_buf_get_extmark_by_id(0, ns, anchor, {})
-            api.nvim_win_set_cursor(0, { anchorpos[1]+1, anchorpos[2] })
-            api.nvim_buf_clear_namespace(0, ns, 0, -1)  -- remove the anchor
-          end
-          if on_return then
-            vim.cmd("normal " .. on_return)
-          end
-        end,
       })
     end
   end
+
 end
 
 
