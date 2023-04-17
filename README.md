@@ -58,6 +58,8 @@ require('leap-spooky').setup {
     -- Special line objects will also be added, by repeating the affixes.
     -- E.g. `yrr<leap>` and `ymm<leap>` will yank a line in the current
     -- window.
+    -- r - cursor doesn't move to the targeted position
+    -- m - cursor moves to the targeted position
     -- You can also use 'rest' & 'move' as mnemonics.
     remote   = { window = 'r', cross_window = 'R' },
     magnetic = { window = 'm', cross_window = 'M' },
