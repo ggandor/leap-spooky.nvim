@@ -16,8 +16,9 @@ more intuitive workflow achieved through these higher abstractions, that are
 nevertheless obvious extensions of Vim's grammar. As usual, the aim is to
 sharpen the saw; there are no big list of new commands to learn, except for two
 affixes that can be added to all existing text objects. `carb[leap]` ("change
-around remote block [marked by leap motion]") in no time will be just as natural
-as targets.vim's `canb` ("change around next block").
+around remote block [marked by leap motion]") in no time will be just as
+natural as [targets.vim](https://github.com/wellle/targets.vim)'s `canb`
+("change around next block").
 
 ## Usage
 
