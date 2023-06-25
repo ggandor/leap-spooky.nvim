@@ -67,6 +67,9 @@ require('leap-spooky').setup {
     -- back afterwards).
     remote = { window = 'r', cross_window = 'R' },
   },
+  -- If set to false, defines text objects like `riw`, `raw`, etc.,
+  -- instead of targets.vim-style `irw`, `arw`.
+  infix = true,
   -- If this option is set to true, the yanked text will automatically be pasted
   -- at the cursor position if the unnamed register is in use.
   paste_on_remote_yank = false,

@@ -100,7 +100,8 @@ local function setup(kwargs)
         table.insert(mappings, {
           scope = scope,
           keeppos = keeppos,
-          lhs = textobj:sub(1,1) .. key .. textobj:sub(2),
+          lhs = (kwargs.infix and textobj:sub(1,1) .. key .. textobj:sub(2)
+                               or key .. textobj),
           action = function ()
             return v_exit() .. "v" .. vim.v.count1 .. textobj .. get_motion_force()
           end,
