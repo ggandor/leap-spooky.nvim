@@ -76,6 +76,46 @@ local default_text_objects = {
   'a>', 'a<', 'at', 'a{', 'a}', 'aB', 'a"', 'a\'', 'a`',
 }
 
+local text_objects_description = {
+    ['iw'] = 'inner word',
+    ['iW'] = 'inner WORD',
+    ['is'] = 'inner sentence',
+    ['ip'] = 'inner paragraph',
+    ['i['] = 'inner [] from \'[\' to the matching \']\'',
+    ['i]'] = 'same as i[',
+    ['i('] = 'same as ib',
+    ['i)'] = 'same as ib',
+    ['ib'] = 'inner block from [( to )]',
+    ['i>'] = 'same as i<',
+    ['i<'] = 'inner <> from \'<\' to the matching \'>\'',
+    ['it'] = 'inner tag block',
+    ['i{'] = 'same as iB',
+    ['i}'] = 'same as iB',
+    ['iB'] = 'inner Block from [{ to }]',
+    ['i"'] = 'double quoted string without the quotes',
+    ['i\''] = 'single quoted string without the quotes',
+    ['i`'] = 'string in backticks without the backticks',
+
+    ['aw'] = 'a word (with white space)',
+    ['aW'] = 'a WORD (with white space)',
+    ['as'] = 'a sentence (with white space)',
+    ['ap'] = 'a paragraph (with white space)',
+    ['a['] = 'a [] from \'[\' to the matching \']\'',
+    ['a]'] = 'same as a[',
+    ['a('] = 'same as ab',
+    ['a)'] = 'same as ab',
+    ['ab'] = 'a block from [( to )] (with braces)',
+    ['a>'] = 'same as a<',
+    ['a<'] = 'a <> from \'<\' to the matching \'>\'',
+    ['at'] = 'a tag block',
+    ['a{'] = 'same as aB',
+    ['a}'] = 'same as aB',
+    ['aB'] = 'a Block from [{ to }] (with brackets)',
+    ['a"'] = 'double quoted string',
+    ['a\''] = 'single quoted string',
+    ['a`'] = 'string in backticks',
+}
+
 local function setup(kwargs)
   local kwargs = kwargs or {}
   local affixes = kwargs.affixes
@@ -105,6 +145,7 @@ local function setup(kwargs)
           action = function ()
             return v_exit() .. "v" .. vim.v.count1 .. textobj .. get_motion_force()
           end,
+          desc = text_objects_description[textobj],
         })
       end
       -- Special case: remote lines.
@@ -144,7 +185,7 @@ local function setup(kwargs)
             }),
             target_windows = target_windows
           }
-        end)
+        end, { desc = mapping.desc })
       end
     end
   end
