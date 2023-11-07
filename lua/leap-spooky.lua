@@ -80,10 +80,13 @@ local function setup(kwargs)
   local kwargs = kwargs or {}
   local affixes = kwargs.affixes
   local yank_paste = kwargs.paste_on_remote_yank or kwargs.yank_paste
+  local extra_text_objects = kwargs.extra_text_objects or {}
 
   local default_register = (vim.o.clipboard == 'unnamed' and "*" or
                             vim.o.clipboard:match('unnamedplus') and "+" or
                             "\"")
+
+  local text_objects = vim.tbl_extend('force', default_text_objects, extra_text_objects)
 
   local v_exit = function()
     local mode = vim.fn.mode(1)
@@ -96,7 +99,7 @@ local function setup(kwargs)
   for kind, scopes in pairs(affixes or default_affixes) do
     local keeppos = kind == 'remote'
     for scope, key in pairs(scopes) do
-      for _, textobj in ipairs(default_text_objects) do
+      for _, textobj in ipairs(text_objects) do
         table.insert(mappings, {
           scope = scope,
           keeppos = keeppos,
