@@ -1,98 +1,93 @@
 local api = vim.api
 
-
-local function get_motion_force()
-  local force = ""
-  local mode = vim.fn.mode(1)
-  if mode:sub(2) == 'oV' then force = "V"
-  elseif mode:sub(2) == 'o' then force = ""
-  end
-  return force
-end
-
-
-local function spooky_action(action, kwargs)
-
-  return function (target)
-    local op_mode = vim.fn.mode(1):match('o')
-    local operator = vim.v.operator
-    local on_return = kwargs.on_return
-    local keeppos = kwargs.keeppos
-    local saved_view = vim.fn.winsaveview()
-    -- Handle cross-window operations.
-    local source_win = vim.fn.win_getid()
-    local cross_window = target.wininfo and target.wininfo.winid ~= source_win
-    -- Set an extmark as an anchor, so that we can execute remote delete
-    -- commands in the backward direction, and move together with the text.
-    local ns = api.nvim_create_namespace("leap-spooky")
-    local anchor = api.nvim_buf_set_extmark(0, ns, saved_view.lnum-1, saved_view.col, {})
-
-    local after = function ()
-      if keeppos then
-        if cross_window then api.nvim_set_current_win(source_win) end
-        vim.fn.winrestview(saved_view)
-        local anchorpos = api.nvim_buf_get_extmark_by_id(0, ns, anchor, {})
-        api.nvim_win_set_cursor(0, { anchorpos[1]+1, anchorpos[2] })
-        api.nvim_buf_clear_namespace(0, ns, 0, -1)  -- remove the anchor
-      end
-      if on_return then
-        vim.cmd.normal(on_return)
-      end
-    end
-
-    -- Jump.
-    if cross_window then api.nvim_set_current_win(target.wininfo.winid) end
-    api.nvim_win_set_cursor(0, { target.pos[1], target.pos[2]-1 })
-    -- Execute :normal action. (Intended usage: select some text object.)
-    vim.cmd("normal " .. action())  -- don't use bang - custom text objects should work too
-    -- (The operation itself will be executed after exiting.)
-
-    -- Follow-up.
-    if (keeppos or on_return) and op_mode then  -- op_mode: sanity check
-      api.nvim_create_autocmd('ModeChanged', {
-        -- Trigger on any mode change, including returning to Insert
-        -- (possible i_CTRL-O), except for change operations (then
-        -- we first enter Insert mode for doing the change itself, and
-        -- should wait for returning to Normal).
-        pattern = operator == 'c' and '*:n' or '*:*',
-        callback = after,
-        once = true,
-      })
-    end
-  end
-
-end
-
-
-local default_affixes = {
-  remote   = { window = 'r', cross_window = 'R' },
-  magnetic = { window = 'm', cross_window = 'M' },
-}
-
-local default_text_objects = {
+local default_vim_text_objects = {
   'iw', 'iW', 'is', 'ip', 'i[', 'i]', 'i(', 'i)', 'ib',
   'i>', 'i<', 'it', 'i{', 'i}', 'iB', 'i"', 'i\'', 'i`',
   'aw', 'aW', 'as', 'ap', 'a[', 'a]', 'a(', 'a)', 'ab',
   'a>', 'a<', 'at', 'a{', 'a}', 'aB', 'a"', 'a\'', 'a`',
 }
 
+local default_affixes = {
+  remote   = { window = 'r', cross_window = 'R' },
+  magnetic = { window = 'm', cross_window = 'M' },
+}
+
+
+-- `action` is a callback returning a command string for :normal, assumed to
+-- be achieving a visual selection. (Being a callback allows creating the
+-- string dynamically, based on the actual mode or even the target context.)
+local function spooky_action(action, kwargs)
+  -- A function to be used by `leap` as its `action` parameter.
+  return function (target)
+    local on_return = kwargs.on_return
+    local keeppos = kwargs.keeppos
+    local op_mode = vim.fn.mode(1):match('o')
+    local saved_view = vim.fn.winsaveview()
+    -- Handle cross-window operations.
+    local source_win = vim.fn.win_getid()
+    local cross_window = target.wininfo and target.wininfo.winid ~= source_win
+    -- Set an extmark as an anchor, so that we can execute remote delete
+    -- commands in the backward direction, and move together with the text.
+    local anc_ns = api.nvim_create_namespace("leap-spooky-anchor")
+    local anchor = api.nvim_buf_set_extmark(0, anc_ns, saved_view.lnum-1, saved_view.col, {})
+
+    if cross_window then api.nvim_set_current_win(target.wininfo.winid) end
+    api.nvim_win_set_cursor(0, { target.pos[1], target.pos[2]-1 })
+
+    vim.cmd.normal(action())  -- don't use bang - custom text objects should work too
+
+    -- In O-P mode, the operation itself will be executed after exiting this
+    -- function. We can set up an autocommand for follow-up stuff, triggering
+    -- on mode change:
+    if (keeppos or on_return) and op_mode then  -- op_mode as a sanity check
+      api.nvim_create_autocmd('ModeChanged', {
+        -- We might return to Insert mode if doing an i_CTRL-O stunt,
+        -- but make sure we never trigger on it when doing _change_
+        -- operations (then we enter Insert mode for doing the change
+        -- itself, and should wait for returning to Normal).
+        pattern = vim.v.operator == 'c' and '*:n' or '*:*',
+        once = true,
+        callback = function ()
+          if keeppos then
+            -- Go back to source window (if necessary), restore view.
+            if cross_window then api.nvim_set_current_win(source_win) end
+            vim.fn.winrestview(saved_view)
+            -- Move to the anchor position.
+            local anchorpos = api.nvim_buf_get_extmark_by_id(0, anc_ns, anchor, {})
+            api.nvim_win_set_cursor(0, { anchorpos[1]+1, anchorpos[2] })
+            api.nvim_buf_clear_namespace(0, anc_ns, 0, -1)
+          end
+          -- Execute follow-up action, if there is one.
+          if on_return then vim.cmd.normal(on_return) end
+        end,
+      })
+    end
+  end
+end
+
+
 local function setup(kwargs)
   local kwargs = kwargs or {}
   local affixes = kwargs.affixes
-  local yank_paste = kwargs.paste_on_remote_yank or kwargs.yank_paste
   local extra_text_objects = kwargs.extra_text_objects or {}
-
+  local text_objects = vim.tbl_extend(
+    'force', default_vim_text_objects, extra_text_objects
+  )
+  local yank_paste = kwargs.paste_on_remote_yank or kwargs.yank_paste
   local default_register = (vim.o.clipboard == 'unnamed' and "*" or
                             vim.o.clipboard:match('unnamedplus') and "+" or
                             "\"")
-
-  local text_objects = vim.tbl_extend('force', default_text_objects, extra_text_objects)
 
   local v_exit = function()
     local mode = vim.fn.mode(1)
     if mode:match('o') then return "" end
     -- v/V/<C-v> exits the corresponding Visual mode if already in it.
     return mode:sub(1,1)
+  end
+
+  local function get_motion_force()
+    local mode = vim.fn.mode(1)
+    return (mode:sub(2) == 'oV' and "V" or mode:sub(2) == 'o' and "" or "")
   end
 
   local mappings = {}
@@ -132,22 +127,20 @@ local function setup(kwargs)
       -- Don't map "remote" keys in Visual.
       if mode == 'o' or (not mapping.keeppos) then
         vim.keymap.set(mode, mapping.lhs, function ()
-          local target_windows = nil
-          if mapping.scope == 'window' then
-            target_windows = { vim.fn.win_getid() }
-          elseif mapping.scope == 'cross_window' then
-            target_windows = require'leap.util'.get_enterable_windows()
-          end
+          local target_windows = (
+            mapping.scope == 'window' and { vim.fn.win_getid() } or
+            mapping.scope == 'cross_window' and require'leap.util'.get_enterable_windows()
+          )
           local yank_paste = (yank_paste and
                               mapping.keeppos and
                               vim.v.operator == 'y' and
                               vim.v.register == default_register)
           require'leap'.leap {
+            target_windows = target_windows
             action = spooky_action(mapping.action, {
               keeppos = mapping.keeppos,
               on_return = yank_paste and "p",
             }),
-            target_windows = target_windows
           }
         end)
       end
