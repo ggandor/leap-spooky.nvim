@@ -103,8 +103,10 @@ local function setup(kwargs)
         table.insert(mappings, {
           scope = scope,
           keeppos = keeppos,
-          lhs = (kwargs.prefix and key .. textobj
-                               or textobj:sub(1,1) .. key .. textobj:sub(2)),
+          -- Force prefix if a custom textobject does not follow the a/i pattern.
+          lhs = (kwargs.prefix or not textobj:sub(1,1):match('[aiAI]')
+                 and key .. textobj
+                 or textobj:sub(1,1) .. key .. textobj:sub(2)),
           action = function ()
             return v_exit() .. "v" .. vim.v.count1 .. textobj .. get_motion_force()
           end,
