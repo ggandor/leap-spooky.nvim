@@ -13,13 +13,13 @@ local default_affixes = {
 }
 
 
--- `action` is a callback returning a command string for :normal, assumed to
--- be achieving a visual selection. (Being a callback allows creating the
+-- `select_cmd` is a callback returning a command string for :normal, assumed
+-- to be achieving a visual selection. (Being a callback allows creating the
 -- string dynamically, based on the actual mode or even the target context.)
-local function spooky_action(action, kwargs)
+local function spooky_action(select_cmd, kwargs)
   -- A function to be used by `leap` as its `action` parameter.
   return function (target)
-    local on_return = kwargs.on_return
+    local on_exit = kwargs.on_exit
     local keeppos = kwargs.keeppos
     local op_mode = vim.fn.mode(1):match('o')
     local saved_view = vim.fn.winsaveview()
@@ -34,12 +34,12 @@ local function spooky_action(action, kwargs)
     if cross_window then api.nvim_set_current_win(target.wininfo.winid) end
     api.nvim_win_set_cursor(0, { target.pos[1], target.pos[2]-1 })
 
-    vim.cmd.normal(action())  -- don't use bang - custom text objects should work too
+    vim.cmd.normal(select_cmd())  -- don't use bang - custom text objects should work too
 
     -- In O-P mode, the operation itself will be executed after exiting this
     -- function. We can set up an autocommand for follow-up stuff, triggering
     -- on mode change:
-    if (keeppos or on_return) and op_mode then  -- op_mode as a sanity check
+    if (keeppos or on_exit) and op_mode then  -- op_mode as a sanity check
       api.nvim_create_autocmd('ModeChanged', {
         -- We might return to Insert mode if doing an i_CTRL-O stunt,
         -- but make sure we never trigger on it when doing _change_
@@ -58,7 +58,7 @@ local function spooky_action(action, kwargs)
             api.nvim_buf_clear_namespace(0, anc_ns, 0, -1)
           end
           -- Execute follow-up action, if there is one.
-          if on_return then vim.cmd.normal(on_return) end
+          if on_exit then vim.cmd.normal(on_exit) end
         end,
       })
     end
@@ -102,7 +102,7 @@ local function setup(kwargs)
           lhs = (kwargs.prefix or not textobj:sub(1,1):match('[aiAI]')
                  and key .. textobj
                  or textobj:sub(1,1) .. key .. textobj:sub(2)),
-          action = function ()
+          select_cmd = function ()
             return v_exit() .. "v" .. vim.v.count1 .. textobj .. get_motion_force()
           end,
         })
@@ -112,7 +112,7 @@ local function setup(kwargs)
         scope = scope,
         keeppos = keeppos,
         lhs = key .. key,
-        action = function ()
+        select_cmd = function ()
           -- Note: a simple [count]V would not work, its behaviour
           -- depends on the previous Visual operation, see `:h V`.
           local n_js = vim.v.count1 - 1
@@ -136,10 +136,10 @@ local function setup(kwargs)
                               vim.v.operator == 'y' and
                               vim.v.register == default_register)
           require'leap'.leap {
-            target_windows = target_windows
-            action = spooky_action(mapping.action, {
+            target_windows = target_windows,
+            action = spooky_action(mapping.select_cmd, {
               keeppos = mapping.keeppos,
-              on_return = yank_paste and "p",
+              on_exit = yank_paste and "p",
             }),
           }
         end)

@@ -86,11 +86,11 @@ would like to experiment.
 `spooky_action` returns a one-argument function that can be used as `leap`'s
 `action` parameter. That is, you have to call it when used in a mapping.
 
-The signature looks like: `spooky_action(action, {opts})`
+The signature looks like: `spooky_action(select_cmd, {opts})`
 
-- `action`: a function returning a string to be passed to `:normal` (by default,
-  the expected action is a text object selection, like `viw`)
-- `opts.on_return`: like `action`, but the command is be executed after the
+- `select_cmd`: a function returning a string to be passed to `:normal` (by
+  default, the expected action is a text object selection, like `viw`)
+- `opts.on_exit`: like `select_cmd`, but the command is be executed after the
   operation has been finished
 - `opts.keeppos`: if true, execute the action remotely (jump back afterwards)
 
@@ -101,7 +101,7 @@ require('leap').leap {
   target_windows = { vim.fn.win_getid() }
   action = require('leap-spooky').spooky_action(
     function () return "viw" end,
-    { keeppos = true, on_return = (vim.v.operator == 'y') and 'p', },
+    { keeppos = true, on_exit = (vim.v.operator == 'y') and 'p', },
   ),
 }
 ```
