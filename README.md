@@ -53,6 +53,9 @@ if the defaults are okay:
 
 ```lua
 require('leap-spooky').setup {
+  -- Additional text objects, to be merged with the default ones.
+  -- E.g.: {'iq', 'aq'}
+  extra_text_objects = nil
   -- Mappings will be generated corresponding to all native text objects,
   -- like: (ir|ar|iR|aR|im|am|iM|aM){obj}.
   -- Special line objects will also be added, by repeating the affixes.
@@ -66,7 +69,8 @@ require('leap-spooky').setup {
     remote = { window = 'r', cross_window = 'R' },
   },
   -- Defines text objects like `riw`, `raw`, etc., instead of
-  -- targets.vim-style `irw`, `arw`.
+  -- targets.vim-style `irw`, `arw`. (Note: prefix is forced if a custom
+  -- text object does not start with "a" or "i".)
   prefix = false,
   -- The yanked text will automatically be pasted at the cursor position
   -- if the unnamed register is in use.
@@ -114,5 +118,3 @@ You can also check the source code for ideas, or if something is unclear.
 - Label the text objects themselves (at least blocks, paragraphs, etc.), so that
   you can immediately choose one, instead of having to specify the reference
   point with a default 2-char Leap motion.
-
-- API for "spookifying" custom (non-native) text objects.
