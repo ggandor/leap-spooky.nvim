@@ -70,8 +70,8 @@ local function setup(kwargs)
   local kwargs = kwargs or {}
   local affixes = kwargs.affixes
   local extra_text_objects = kwargs.extra_text_objects or {}
-  local text_objects = vim.tbl_extend(
-    'force', default_vim_text_objects, extra_text_objects
+  local text_objects = vim.list_extend(
+    vim.deepcopy(default_vim_text_objects), extra_text_objects
   )
   local yank_paste = kwargs.paste_on_remote_yank or kwargs.yank_paste
   local default_register = (vim.o.clipboard == 'unnamed' and "*" or
